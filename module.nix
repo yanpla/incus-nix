@@ -337,9 +337,9 @@ let
         fi
 
         meta="$(get_instance_meta "$name")"
-        current_type="$(jq -r '.type' <<<"$meta")"
+        current_type="$(jq -r '.type // empty' <<<"$meta")"
 
-        if [[ "$current_type" != "$desired_type" ]]; then
+        if [[ -n "$current_type" ]] && [[ "$current_type" != "$desired_type" ]]; then
           log "Type mismatch for $name: have $current_type, want $desired_type"
           continue
         fi
