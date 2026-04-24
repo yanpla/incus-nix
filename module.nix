@@ -251,14 +251,14 @@ let
         if [[ "$ensure_running" == "true" ]]; then
           if [[ "$status" != "Running" ]]; then
             log "Starting $name"
-            incus start "$name"
+            incus start "$name" || log "WARNING: Failed to start $name"
           else
             log "$name already running"
           fi
         else
           if [[ "$status" == "Running" ]]; then
             log "Stopping $name"
-            incus stop "$name"
+            incus stop "$name" || log "WARNING: Failed to stop $name"
           else
             log "$name already stopped"
           fi
