@@ -6,7 +6,7 @@
   };
 
   outputs =
-    { }:
+    { self }:
     {
       modules.incus-nix = ./module.nix;
     };
