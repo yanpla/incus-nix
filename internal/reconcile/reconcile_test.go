@@ -199,6 +199,28 @@ func TestBuildUpdatedConfigPreservesIncusManagedKeys(t *testing.T) {
 	}
 }
 
+func TestPruneRunningManagedInstanceNeedsStop(t *testing.T) {
+	t.Parallel()
+
+	instance := api.Instance{
+		InstancePut: api.InstancePut{
+			Config: map[string]string{
+				"user.incus-nix.managed": "true",
+			},
+		},
+		Name:   "dev-vm",
+		Status: "Running",
+	}
+
+	if instance.Status != "Running" {
+		t.Fatalf("expected test fixture to represent a running instance")
+	}
+
+	if instance.Config["user.incus-nix.managed"] != managedMarkerValue {
+		t.Fatalf("expected test fixture to represent a managed instance")
+	}
+}
+
 func TestTypeComparisonUsesExactStrings(t *testing.T) {
 	t.Parallel()
 

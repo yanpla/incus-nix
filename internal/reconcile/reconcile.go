@@ -269,6 +269,22 @@ func pruneInstances(ctx context.Context, server incus.InstanceServer, cfg Config
 			continue
 		}
 
+		if instance.Status == "Running" {
+			cfg.Logger.Printf("Stopping managed instance %s before deletion", instance.Name)
+			op, err := server.UpdateInstanceState(instance.Name, api.InstanceStatePut{
+				Action:  "stop",
+				Timeout: -1,
+				Force:   true,
+			}, "")
+			if err != nil {
+				return fmt.Errorf("stop instance %q before delete: %w", instance.Name, err)
+			}
+
+			if err := op.WaitContext(ctx); err != nil {
+				return fmt.Errorf("wait for stop of %q before delete: %w", instance.Name, err)
+			}
+		}
+
 		cfg.Logger.Printf("Deleting managed instance %s", instance.Name)
 		op, err := server.DeleteInstance(instance.Name)
 		if err != nil {
