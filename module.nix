@@ -44,10 +44,15 @@ let
       pkgs.coreutils
     ];
     text = ''
-      set -euo pipefail
+      set -uo pipefail
 
       log() {
         echo "incus-nix: $*"
+      }
+
+      fail() {
+        log "ERROR: $*"
+        exit 1
       }
 
       normalize_json() {
@@ -306,6 +311,7 @@ let
       desired_json="$(<"$INSTANCE_DATA_FILE")"
 
       declare -A desired_names=()
+      failed=0
 
       while IFS= read -r spec; do
         name="$(jq -r '.name' <<<"$spec")"
@@ -323,7 +329,8 @@ let
         if ! instance_exists "$name"; then
           log "Creating $name from $image"
           if ! create_instance "$name" "$image" "$desired_type" "$profiles_json"; then
-            log "ERROR: Failed to create $name, skipping remaining steps for this instance"
+            log "ERROR: Failed to create $name, skipping this instance"
+            failed=1
             continue
           fi
           existing_json="$(incus list --format json 2>/dev/null || printf '[]\n')"
@@ -346,6 +353,10 @@ let
         reconcile_devices "$name" "$desired_devices_json" "$meta"
         reconcile_state "$name" "$ensure_running"
       done < <(jq -c '.[]' <<<"$desired_json")
+
+      if [[ "$failed" == "1" ]]; then
+        fail "One or more instances failed to create"
+      fi
 
       prune_instances
 
