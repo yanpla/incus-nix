@@ -214,10 +214,9 @@ let
             continue
           fi
 
-          if [[
-            "$(normalize_json "$current_device_json")" !=
-            "$(normalize_json "$desired_device_json")"
-          ]]; then
+          current_norm="$(normalize_json "$current_device_json")"
+          desired_norm="$(normalize_json "$desired_device_json")"
+          if [[ "$current_norm" != "$desired_norm" ]]; then
             log "Replacing device $name.$device_name"
             incus config device remove "$name" "$device_name"
             add_device "$name" "$device_name" "$desired_device_json"
