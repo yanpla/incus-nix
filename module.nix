@@ -74,6 +74,7 @@ let
         local profiles_json="$4"
 
         local -a args=()
+        args+=(--quiet)
 
         if [[ "$type" == "virtual-machine" ]]; then
           args+=(--vm)
@@ -87,7 +88,16 @@ let
           done < <(jq -r '.[]' <<<"$profiles_json")
         fi
 
-        incus init "$image" "$name" "''${args[@]}"
+        log "Launching $name from $image with type $type"
+        local output
+        if output=$(incus launch "$image" "$name" "''${args[@]}" 2>&1); then
+          log "Created $name successfully"
+          return 0
+        else
+          log "ERROR: Failed to create $name"
+          log "Output: $output"
+          return 1
+        fi
       }
 
       reconcile_profiles() {
@@ -312,7 +322,10 @@ let
 
         if ! instance_exists "$name"; then
           log "Creating $name from $image"
-          create_instance "$name" "$image" "$desired_type" "$profiles_json"
+          if ! create_instance "$name" "$image" "$desired_type" "$profiles_json"; then
+            log "ERROR: Failed to create $name, skipping remaining steps for this instance"
+            continue
+          fi
           existing_json="$(incus list --format json 2>/dev/null || printf '[]\n')"
         fi
 
