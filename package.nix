@@ -6,4 +6,6 @@ buildGoModule {
   src = ./.;
   subPackages = [ "cmd/incus-nix-reconcile" ];
   vendorHash = "sha256-b7RIF1DGYTYs2qwUe8XyEJpwvuMuGcZnwhUwNbeto2Y=";
+
+  meta.mainProgram = "incus-nix-reconcile";
 }

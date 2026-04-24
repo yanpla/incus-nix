@@ -145,7 +145,7 @@ func reconcileInstance(ctx context.Context, server incus.InstanceServer, clientC
 	currentProfiles := append([]string(nil), instance.Profiles...)
 	desiredProfiles := append([]string(nil), spec.Profiles...)
 	currentConfig := filteredCurrentConfig(instance.Config, cfg.MarkerKey)
-	desiredConfig := normalizeDesiredConfig(spec.Config, cfg.MarkerKey)
+	desiredConfig := normalizeComparableConfig(spec.Config)
 	currentDevices := normalizeLocalDevices(instance.Devices)
 	desiredDevices := normalizeDesiredDevices(spec.Devices)
 
@@ -153,7 +153,7 @@ func reconcileInstance(ctx context.Context, server incus.InstanceServer, clientC
 		cfg.Logger.Printf("Updating %s", spec.Name)
 		put := instance.Writable()
 		put.Profiles = desiredProfiles
-		put.Config = desiredConfig
+		put.Config = buildUpdatedConfig(instance.Config, spec.Config, cfg.MarkerKey)
 		put.Devices = desiredDevices
 
 		op, err := server.UpdateInstance(spec.Name, put, etag)
@@ -316,8 +316,30 @@ func parseImageSource(clientConfig *cliconfig.Config, image string) (api.Instanc
 }
 
 func normalizeDesiredConfig(config map[string]string, markerKey string) map[string]string {
+	out := normalizeComparableConfig(config)
+	out[markerKey] = managedMarkerValue
+	return out
+}
+
+func normalizeComparableConfig(config map[string]string) map[string]string {
 	out := make(map[string]string, len(config)+1)
 	for key, value := range config {
+		out[key] = value
+	}
+
+	return out
+}
+
+func buildUpdatedConfig(current map[string]string, desired map[string]string, markerKey string) map[string]string {
+	out := make(map[string]string, len(current)+len(desired)+1)
+
+	for key, value := range current {
+		if strings.HasPrefix(key, "volatile.") || strings.HasPrefix(key, "image.") {
+			out[key] = value
+		}
+	}
+
+	for key, value := range desired {
 		out[key] = value
 	}
 

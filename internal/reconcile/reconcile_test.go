@@ -48,6 +48,18 @@ func TestNormalizeDesiredConfigAddsMarker(t *testing.T) {
 	}
 }
 
+func TestNormalizeComparableConfigOmitsMarker(t *testing.T) {
+	t.Parallel()
+
+	got := normalizeComparableConfig(map[string]string{
+		"limits.cpu": "2",
+	})
+
+	if len(got) != 1 || got["limits.cpu"] != "2" {
+		t.Fatalf("unexpected comparable config: %#v", got)
+	}
+}
+
 func TestFilteredCurrentConfigDropsGeneratedKeys(t *testing.T) {
 	t.Parallel()
 
@@ -151,6 +163,39 @@ func TestNormalizeDesiredDevices(t *testing.T) {
 	device := got["eth0"]
 	if device["type"] != "nic" || device["network"] != "incusbr0" || device["name"] != "eth0" {
 		t.Fatalf("unexpected normalized device: %#v", got)
+	}
+}
+
+func TestBuildUpdatedConfigPreservesIncusManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	got := buildUpdatedConfig(
+		map[string]string{
+			"volatile.uuid":          "1234",
+			"image.architecture":     "x86_64",
+			"user.user-data":         "old",
+			"user.incus-nix.managed": "true",
+		},
+		map[string]string{
+			"user.user-data": "new",
+		},
+		"user.incus-nix.managed",
+	)
+
+	if got["volatile.uuid"] != "1234" {
+		t.Fatalf("expected volatile key to be preserved: %#v", got)
+	}
+
+	if got["image.architecture"] != "x86_64" {
+		t.Fatalf("expected image key to be preserved: %#v", got)
+	}
+
+	if got["user.user-data"] != "new" {
+		t.Fatalf("expected desired user key to override existing value: %#v", got)
+	}
+
+	if got["user.incus-nix.managed"] != managedMarkerValue {
+		t.Fatalf("expected marker key to be enforced: %#v", got)
 	}
 }
 
